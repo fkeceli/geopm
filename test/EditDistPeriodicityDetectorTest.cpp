@@ -57,9 +57,9 @@ void EditDistPeriodicityDetectorTest::SetUp()
     m_trace_file_prefix += "/test/EditDistPeriodicityDetectorTest.";
 }
 
-void check_vals(std::string trace_file_path, int warmup, int period, int history_size=20);
-void check_vals(std::string trace_file_path, int start, int end, int period, int history_size);
-void check_vals(std::vector<record_s> recs, std::vector<std::vector<int> > expected, int history_size=20);
+void check_vals(std::string trace_file_path, int warmup, int period, int history_size=20, bool squash_recs=false);
+void check_vals(std::string trace_file_path, int start, int end, int period, int history_size, bool squash_recs=false);
+void check_vals(std::vector<record_s> recs, std::vector<std::vector<int> > expected, int history_size=20, bool squash_recs=false);
 
 
 /// Pattern 0: (A)x10
@@ -163,11 +163,45 @@ TEST_F(EditDistPeriodicityDetectorTest, fft_small)
     check_vals(m_trace_file_prefix + "fft_small.trace", warmup, period, history_size);
 }
 
+/// Pattern 1: (AB)x15 w/ squash records
+TEST_F(EditDistPeriodicityDetectorTest, sq_pattern_ab)
+{
+    int warmup = 4;
+    int period = 2;
+    int history_size = 20;
+    bool squash_recs=true;
+
+    check_vals(m_trace_file_prefix + "1_pattern_ab.trace", warmup, period, history_size, squash_recs);
+}
+
+/// Pattern 2: (ABB)x12 w/ squash records
+TEST_F(EditDistPeriodicityDetectorTest, sq_pattern_abb)
+{
+    int warmup = 6;
+    int period = 2;
+    int history_size = 20;
+    bool squash_recs=true;
+
+    check_vals(m_trace_file_prefix + "2_pattern_abb.trace", warmup, period, history_size, squash_recs);
+}
+
+
+/// HACC Short for Rank 0 w/ record squashing
+TEST_F(EditDistPeriodicityDetectorTest, sq_hacc_small)
+{
+    int warmup = 700;
+    int period = 11;
+    int history_size = 20;
+    bool squash_recs=true;
+
+    check_vals(m_trace_file_prefix + "hacc_small.trace", warmup, period, history_size, squash_recs);
+}
+
 /// HELPER FUNCTIONS
 
 /// start: inclusive
 /// end: exclusive
-void check_vals(std::string trace_file_path, int start, int end, int period, int history_size)
+void check_vals(std::string trace_file_path, int start, int end, int period, int history_size, bool squash_recs)
 {
     MockApplicationSampler app;
     app.inject_records(geopm::read_file(trace_file_path));
@@ -189,10 +223,10 @@ void check_vals(std::string trace_file_path, int start, int end, int period, int
         expected.push_back({period, 0});
     }
 
-    check_vals(recs, expected, history_size);
+    check_vals(recs, expected, history_size, squash_recs);
 }
 
-void check_vals(std::string trace_file_path, int warmup, int period, int history_size)
+void check_vals(std::string trace_file_path, int warmup, int period, int history_size, bool squash_recs)
 {
     MockApplicationSampler app;
     app.inject_records(geopm::read_file(trace_file_path));
@@ -211,12 +245,12 @@ void check_vals(std::string trace_file_path, int warmup, int period, int history
         expected.push_back({period, 0});
     }
 
-    check_vals(recs, expected, history_size);
+    check_vals(recs, expected, history_size, squash_recs);
 }
 
-void check_vals(std::vector<record_s> recs, std::vector<std::vector<int> > expected, int history_size)
+void check_vals(std::vector<record_s> recs, std::vector<std::vector<int> > expected, int history_size, bool squash_recs)
 {
-    geopm::EditDistPeriodicityDetector edpd(history_size);
+    geopm::EditDistPeriodicityDetector edpd(history_size, squash_recs);
 
     int region_entry_num = 0;
     for(size_t i = 0; i < expected.size(); i++) {
