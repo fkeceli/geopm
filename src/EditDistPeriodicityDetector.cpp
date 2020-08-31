@@ -45,23 +45,23 @@ namespace geopm
 {
     EditDistPeriodicityDetector::EditDistPeriodicityDetector(int history_buffer_size, bool squash_records)
         : m_history_buffer(history_buffer_size)
+        , m_repeat_count(history_buffer_size)
         , m_history_buffer_size(history_buffer_size)
         , m_score(-1)
         , m_record_count(0)
         , m_DP(history_buffer_size * history_buffer_size * history_buffer_size)
         , m_squash_records(squash_records)
+        , m_last_event(0)
+        , m_last_event_count(0)
+        // This is right though because in the case where event squashing
+        // is being used, calc_period will never be called when all the
+        // events are identical, and in this case, the period is 1.
+        , m_period(1)
     {
-        m_myinf = 2*history_buffer_size;
-
         if (squash_records) {
-            m_repeat_count = geopm::make_unique<CircularBuffer<int> >(history_buffer_size);
-            m_last_event = 0;
-            m_last_event_count = 0;
-            // This is right though because in the case where event squashing
-            // is being used, calc_period will never be called when all the
-            // events are identical, and in this case, the period is 1.
             m_period = 1;
-        } else {
+        }
+        else {
             m_period = -1;
         }
     }
@@ -78,7 +78,7 @@ namespace geopm
                     bool return_val = false;
                     if (m_last_event_count > 0) {
                         m_history_buffer.insert(record.signal);
-                        m_repeat_count->insert(m_last_event_count);
+                        m_repeat_count.insert(m_last_event_count);
                         ++m_record_count;
                         calc_period();
                         return_val = true;
@@ -143,21 +143,23 @@ namespace geopm
         for (int mm = std::max({1, m_record_count-m_history_buffer_size}); mm < m_record_count; ++mm) {
             for (int ii = std::max({1, m_record_count-m_history_buffer_size}); ii < mm+1; ++ii) {
                 int term;
-                if (m_record_count-(ii-1) <= num_recs_in_hist) {
+                if (m_record_count - (ii - 1) <= num_recs_in_hist) {
                     if (m_squash_records) {
-                        if (m_history_buffer.value(num_recs_in_hist-(m_record_count-(ii-1))) ==
+                        if (m_history_buffer.value(num_recs_in_hist - (m_record_count - (ii - 1))) ==
                             m_history_buffer.value(num_recs_in_hist - 1)) {
-                            term = abs((m_repeat_count->value(num_recs_in_hist-(m_record_count-(ii-1)))) - m_repeat_count->value(num_recs_in_hist - 1));
-                        } else {
-                            term = m_repeat_count->value(num_recs_in_hist-(m_record_count-(ii-1))) + m_repeat_count->value(num_recs_in_hist - 1);
+                            term = abs(m_repeat_count.value(num_recs_in_hist - (m_record_count - (ii - 1))) - m_repeat_count.value(num_recs_in_hist - 1));
                         }
-                    } else {
-                        term = (m_history_buffer.value(num_recs_in_hist-(m_record_count-(ii-1))) !=
+                        else {
+                            term = m_repeat_count.value(num_recs_in_hist - (m_record_count - (ii - 1))) + m_repeat_count.value(num_recs_in_hist - 1);
+                        }
+                    }
+                    else {
+                        term = (m_history_buffer.value(num_recs_in_hist - (m_record_count - (ii - 1))) !=
                                 m_history_buffer.value(num_recs_in_hist - 1)) ?
                             2 : 0;
                     }
                 } else {
-                    term = m_squash_records ? 2 * m_repeat_count->value(num_recs_in_hist - 1) : 2;
+                    term = m_squash_records ? 2 * m_repeat_count.value(num_recs_in_hist - 1) : 2;
                 }
                 Dset(ii, m_record_count - mm, mm,
                         std::min({Dget(ii - 1, m_record_count - mm    , mm) + 1,
@@ -218,7 +220,7 @@ namespace geopm
 
         std::vector<int> reps;
         if (m_squash_records) {
-            reps = m_repeat_count->make_vector(
+            reps = m_repeat_count.make_vector(
                     slice_start, m_history_buffer.size());
         }
 
