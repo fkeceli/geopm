@@ -138,8 +138,8 @@ namespace geopm
             Dset(0, m_record_count - mm, mm, m_record_count - mm);
         }
 
-        for (int mm = std::max({1, m_record_count-m_history_buffer_size}); mm < m_record_count; ++mm) {
-            for (int ii = std::max({1, m_record_count-m_history_buffer_size}); ii < mm+1; ++ii) {
+        for (int mm = std::max({1, m_record_count - m_history_buffer_size}); mm < m_record_count; ++mm) {
+            for (int ii = std::max({1, m_record_count - m_history_buffer_size}); ii < mm + 1; ++ii) {
                 int term;
                 if (m_record_count - (ii - 1) <= num_recs_in_hist) {
                     if (m_squash_records) {
@@ -156,7 +156,8 @@ namespace geopm
                                 m_history_buffer.value(num_recs_in_hist - 1)) ?
                             2 : 0;
                     }
-                } else {
+                }
+                else {
                     term = m_squash_records ? 2 * m_repeat_count.value(num_recs_in_hist - 1) : 2;
                 }
                 Dset(ii, m_record_count - mm, mm,
