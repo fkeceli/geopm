@@ -50,7 +50,7 @@ namespace geopm
         else if (string_begins_with(name, "edit_distance")) {
             result = geopm::make_unique<EditDistEpochRecordFilter>(name);
         }
-        else if (string_begins_with(name, "rec_analysis")) {
+        else if (string_begins_with(name, "record_analysis")) {
             result = geopm::make_unique<RecordAnalysisFilter>(name);
         }
         else {
