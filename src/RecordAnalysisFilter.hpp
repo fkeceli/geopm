@@ -30,33 +30,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
+#ifndef RECORDANALYSISFILTER_HPP_INCLUDE
+#define RECORDANALYSISFILTER_HPP_INCLUDE
 
 #include "RecordFilter.hpp"
-#include "RecordAnalysisFilter.hpp"
-#include "ProxyEpochRecordFilter.hpp"
-#include "EditDistEpochRecordFilter.hpp"
-#include "Helper.hpp"
-#include "Exception.hpp"
+#include <map>
+#include <time.h>
 
 namespace geopm
 {
-    std::unique_ptr<RecordFilter> RecordFilter::make_unique(const std::string &name)
+    class RecordAnalysisFilter : public RecordFilter
     {
-        std::unique_ptr<RecordFilter> result;
-        if (string_begins_with(name, "proxy_epoch")) {
-            result = geopm::make_unique<ProxyEpochRecordFilter>(name);
-        }
-        else if (string_begins_with(name, "edit_distance")) {
-            result = geopm::make_unique<EditDistEpochRecordFilter>(name);
-        }
-        else if (string_begins_with(name, "rec_analysis")) {
-            result = geopm::make_unique<RecordAnalysisFilter>(name);
-        }
-        else {
-            throw Exception("RecordFilter::make_unique(): Unable to parse name: " + name,
-                            GEOPM_ERROR_INVALID, __FILE__, __LINE__);
-        }
-        return result;
-    }
+        public:
+            /// @brief Default constructor for the filter. This filter
+            /// creates a count table of how many times each region is
+            /// encountered by the app by observing the hashes stored in
+            /// the record.signal field every time a record.event of type
+            /// EVENT_REGION_ENTRY is received. At the end of each interval,
+            /// count table is printed on STDOUT and the count table is reset.
+            ///
+            /// @param [in] report_interval_secs Length of the report interval
+            /// in seconds.
+            ///
+
+            RecordAnalysisFilter(double report_interval_secs);
+            RecordAnalysisFilter(const std::string &name);
+            /// @brief Default destructor.
+            virtual ~RecordAnalysisFilter() = default;
+
+            std::vector<record_s> filter(const record_s &record);
+
+            static void parse_name(const std::string &name, double &report_interval_secs);
+
+        private:
+            std::map<uint64_t, int> m_histogram;
+
+            time_t m_last_sample_time;
+            double m_report_interval_secs;
+    };
 }
+
+#endif

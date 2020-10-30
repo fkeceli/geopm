@@ -484,6 +484,8 @@ libgeopmpolicy_la_SOURCES = contrib/json11/json11.cpp \
                             src/EditDistPeriodicityDetector.hpp \
                             src/EditDistEpochRecordFilter.cpp \
                             src/EditDistEpochRecordFilter.hpp \
+                            src/RecordAnalysisFilter.cpp \
+                            src/RecordAnalysisFilter.hpp \
                             src/ELF.cpp \
                             src/ELF.hpp \
                             src/Endpoint.cpp \
